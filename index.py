@@ -116,7 +116,9 @@ if uploaded_file:
 
         st.subheader("📊 Tableau Croisé Dynamique avec Filtres")
         st.dataframe(pivot_table)
-
+        if pivot_table.shape[1] > 1000:
+            st.warning("Trop de catégories à afficher. Veuillez filtrer les colonnes pour une meilleure lisibilité.")
+            st.stop()
         # ---- GRAPHIQUE INTERACTIF ----
         if not pivot_table.empty:
             st.subheader("📈 Graphique Interactif des Données")
@@ -134,7 +136,19 @@ if uploaded_file:
                 hover_data={values_col: True, index_col: True, columns_col: True}
             )
 
-            fig.update_layout(legend_title_text=columns_col, xaxis_tickangle=-45)
+            fig.update_layout(
+    legend_title_text=columns_col,
+    xaxis_tickangle=-45,
+    legend=dict(
+        title=columns_col,
+        orientation="h",  # Orientation horizontale de la légende
+        x=0.5,  # Centrer la légende
+        xanchor="center",  # Ancrer la légende au centre
+        y=-0.7,  # Positionner la légende sous le graphique
+        yanchor="top"  # Ancrer la légende en haut
+    )
+)
+
             fig.update_traces(mode="markers+lines", hoverinfo="all")
             st.plotly_chart(fig, use_container_width=True)
         else:
