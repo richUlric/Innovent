@@ -76,47 +76,66 @@ if uploaded_file:
             return selected_filters[col]
         return filtered_df[col].dropna().unique().tolist()
 
-    # ---- SÉLECTION DES AXES ----
-    index_col = st.sidebar.selectbox("📝 Sélectionnez l'index (lignes)", df.columns)
-    columns_col = st.sidebar.selectbox("📊 Sélectionnez la colonne (colonnes)", df.columns)
-    values_col = st.sidebar.selectbox("📈 Sélectionnez la valeur à agréger", df.columns)
+    if len(df.columns) < 2:
+        st.error("❌ Le fichier ne contient qu'une seule colonne. Impossible de générer un tableau croisé dynamique.")
 
-    # Vérifier si la colonne de valeurs est numérique
-    agg_function = "sum" if pd.api.types.is_numeric_dtype(df[values_col]) else "count"
+        st.subheader("📋 Données importées")
+        st.dataframe(df)
 
-    # ---- TABLEAU CROISÉ DYNAMIQUE ----
-    filtered_df[index_col] = filtered_df[index_col].astype(str)
-    filtered_df[columns_col] = filtered_df[columns_col].astype(str)
+        col = df.columns[0]
+        st.subheader(f"📊 Distribution de la colonne '{col}'")
 
-    if not pd.api.types.is_numeric_dtype(df[values_col]):
-        filtered_df["count"] = 1
-        values_col = "count"
+        count_df = df[col].value_counts().reset_index()
+        count_df.columns = [col, "Fréquence"]
 
-    pivot_table = pd.pivot_table(filtered_df, values=values_col, index=index_col, 
-                                 columns=columns_col, aggfunc=agg_function, fill_value=0)
-
-    st.subheader("📊 Tableau Croisé Dynamique avec Filtres")
-    st.dataframe(pivot_table)
-
-    # ---- GRAPHIQUE INTERACTIF ----
-    if not pivot_table.empty:
-        st.subheader("📈 Graphique Interactif des Données")
-        pivot_df = pivot_table.reset_index().melt(id_vars=[index_col], var_name=columns_col, value_name=values_col)
-        
-        fig = px.line(
-            pivot_df, 
-            x=index_col, 
-            y=values_col, 
-            color=columns_col,
-            markers=True, 
-            title=f"Évolution de '{values_col}' en fonction de '{index_col}'",
-            labels={index_col: index_col, values_col: values_col, columns_col: columns_col},
-            hover_name=columns_col, 
-            hover_data={values_col: True, index_col: True, columns_col: True}  # Ajout des détails au survol
-        )
-        
-        fig.update_layout(legend_title_text=columns_col, xaxis_tickangle=-45)
-        fig.update_traces(mode="markers+lines", hoverinfo="all")  # Affichage complet des détails au survol
+        fig = px.bar(count_df, x=col, y="Fréquence", title=f"Distribution des valeurs dans '{col}'")
         st.plotly_chart(fig, use_container_width=True)
+ 
     else:
-        st.warning("⚠️ Aucun résultat à afficher après filtrage.")
+        # Prise des deux premières colonnes pour initialisation
+        default_index_col = df.columns[0]
+        default_columns_col = df.columns[1]
+
+        index_col = st.sidebar.selectbox("📝 Sélectionnez l'index (lignes)", df.columns, index=0)
+        columns_col = st.sidebar.selectbox("📊 Sélectionnez la colonne (colonnes)", df.columns, index=1)
+        values_col = st.sidebar.selectbox("📈 Sélectionnez la valeur à agréger", df.columns)
+        
+        # Vérifier si la colonne de valeurs est numérique
+        agg_function = "sum" if pd.api.types.is_numeric_dtype(df[values_col]) else "count"
+
+        # ---- TABLEAU CROISÉ DYNAMIQUE ----
+        filtered_df[index_col] = filtered_df[index_col].astype(str)
+        filtered_df[columns_col] = filtered_df[columns_col].astype(str)
+
+        if not pd.api.types.is_numeric_dtype(df[values_col]):
+            filtered_df["count"] = 1
+            values_col = "count"
+
+        pivot_table = pd.pivot_table(filtered_df, values=values_col, index=index_col, 
+                                    columns=columns_col, aggfunc=agg_function, fill_value=0)
+
+        st.subheader("📊 Tableau Croisé Dynamique avec Filtres")
+        st.dataframe(pivot_table)
+
+        # ---- GRAPHIQUE INTERACTIF ----
+        if not pivot_table.empty:
+            st.subheader("📈 Graphique Interactif des Données")
+            pivot_df = pivot_table.reset_index().melt(id_vars=[index_col], var_name=columns_col, value_name=values_col)
+
+            fig = px.line(
+                pivot_df, 
+                x=index_col, 
+                y=values_col, 
+                color=columns_col,
+                markers=True, 
+                title=f"Évolution de '{values_col}' en fonction de '{index_col}'",
+                labels={index_col: index_col, values_col: values_col, columns_col: columns_col},
+                hover_name=columns_col, 
+                hover_data={values_col: True, index_col: True, columns_col: True}
+            )
+
+            fig.update_layout(legend_title_text=columns_col, xaxis_tickangle=-45)
+            fig.update_traces(mode="markers+lines", hoverinfo="all")
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("⚠️ Aucun résultat à afficher après filtrage.")
