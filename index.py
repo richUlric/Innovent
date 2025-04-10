@@ -116,7 +116,7 @@ if uploaded_file:
 
         st.subheader("📊 Tableau Croisé Dynamique avec Filtres")
         st.dataframe(pivot_table)
-        if pivot_table.shape[1] > 500:
+        if pivot_table.shape[1] > 1000:
             st.warning("Trop de catégories à afficher. Veuillez filtrer les colonnes pour une meilleure lisibilité.")
             st.stop()
         # ---- GRAPHIQUE INTERACTIF ----
